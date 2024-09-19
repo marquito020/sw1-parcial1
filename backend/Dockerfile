@@ -13,6 +13,9 @@ COPY package*.json ./
 # Instala las dependencias
 RUN npm install
 
+# Instalar ts
+RUN npm install -g ts-node
+
 # Copia el resto de los archivos del backend
 COPY . .
 
