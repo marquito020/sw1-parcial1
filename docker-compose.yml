@@ -21,8 +21,8 @@ services:
     build: ./frontend
     container_name: frontend
     environment:
-      - VITE_API_URL=http://localhost:4000/api
-      - VITE_SOCKET_URL=http://localhost:4000
+      - VITE_API_URL=http://137.184.205.247:4000/api
+      - VITE_SOCKET_URL=http://137.184.205.247:4000
       - VITE_BASE_URL=/
     ports:
       - "5173:5173"
