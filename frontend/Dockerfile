@@ -19,5 +19,5 @@ RUN npm run build
 # Expone el puerto 5173 (Vite)
 EXPOSE 5173
 
-# Comando para iniciar el servidor en modo preview
-CMD ["npm", "run", "preview"]
+# Comando para iniciar el servidor en modo preview con el puerto 5173
+CMD ["npm", "run", "preview", "--", "--host", "--port", "8080"]

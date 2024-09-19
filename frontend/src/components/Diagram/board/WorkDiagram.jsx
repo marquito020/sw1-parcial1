@@ -9,6 +9,7 @@ import plantUmlEncoder from 'plantuml-encoder';
 import Config from "../../../config";
 
 // Componentes personalizados
+import ProjectNameModal from "../../Modals/ProjectNameModal";
 import DiagramViewer from "./DiagramViewer";
 import ClassManager from "./ClassManager";
 import RelationshipManager from "./RelationshipManager";
@@ -51,6 +52,10 @@ export default function WorkDiagram() {
     const [showClassManager, setShowClassManager] = useState(true);
     const [showRelationshipManager, setShowRelationshipManager] = useState(false);
     const [showAssociationManager, setShowAssociationManager] = useState(false);
+
+    // Nombre del proyecto Spring Boot
+    const [proyectName, setProyectName] = useState("");
+    const [showModal, setShowModal] = useState(false);
 
     /* console.log("Relaciones:", relationships); */
     useEffect(() => {
@@ -228,13 +233,13 @@ export default function WorkDiagram() {
 
             // Evitar duplicados
             // if (newAssociation.type === "-") {
-                if (!foundSimpleAssociations.some(assoc =>
-                    assoc.from === newAssociation.from &&
-                    assoc.to === newAssociation.to &&
-                    assoc.name === newAssociation.name
-                )) {
-                    foundSimpleAssociations.push(newAssociation);
-                }
+            if (!foundSimpleAssociations.some(assoc =>
+                assoc.from === newAssociation.from &&
+                assoc.to === newAssociation.to &&
+                assoc.name === newAssociation.name
+            )) {
+                foundSimpleAssociations.push(newAssociation);
+            }
             //}
         }
 
@@ -357,7 +362,17 @@ export default function WorkDiagram() {
     };
 
     const handleExportSpringBoot = () => {
-        generateAndDownloadZip(classes, relationships, associations);
+        if (proyectName) {
+            // Llamar a la función de exportar con el nombre del proyecto
+            generateAndDownloadZip(classes, relationships, associations, proyectName);
+        } else {
+            setShowModal(true); // Mostrar modal si no hay un nombre de proyecto
+        }
+    };
+
+    const handleProjectNameSubmit = (name) => {
+        setProyectName(name); // Guardar el nombre del proyecto
+        generateAndDownloadZip(classes, relationships, associations, name); // Ejecutar la exportación
     };
 
     return (
@@ -386,6 +401,13 @@ export default function WorkDiagram() {
 
                         <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg"
                             onClick={handleExportSpringBoot}>Exportar Spring Boot</button>
+
+                        {/* Modal para ingresar el nombre del proyecto */}
+                        <ProjectNameModal
+                            show={showModal}
+                            onClose={() => setShowModal(false)}
+                            onSubmit={handleProjectNameSubmit}
+                        />
 
                         <div>
                             <button

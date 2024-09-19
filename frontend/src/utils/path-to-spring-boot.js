@@ -5,7 +5,8 @@ import { saveAs } from "file-saver";
 export const generateAndDownloadZip = (
   classes,
   relationships,
-  associations
+  associations,
+  proyectName
 ) => {
   const zip = new JSZip();
 
@@ -21,11 +22,12 @@ export const generateAndDownloadZip = (
         cls.name,
         cls.attributes,
         relationships,
-        associations
+        associations,
+        proyectName
       );
-      const repoCode = generateRepositoryCode(cls.name);
-      const controllerCode = generateControllerCode(cls.name);
-      const serviceCode = generateServiceCode(cls.name);
+      const repoCode = generateRepositoryCode(cls.name, proyectName);
+      const controllerCode = generateControllerCode(cls.name, proyectName);
+      const serviceCode = generateServiceCode(cls.name, proyectName);
 
       zip.folder("model").file(`${cls.name}.java`, entityCode);
       zip.folder("repository").file(`${cls.name}Repository.java`, repoCode);
@@ -46,10 +48,11 @@ const generateEntityCode = (
   className,
   attributes,
   relationships,
-  associations
+  associations,
+  proyectName
 ) => {
   return `
-  package com.diagram.demo.model;
+  package ${proyectName}.demo.model;
   
   import jakarta.persistence.*;
   import lombok.Data;
@@ -149,11 +152,11 @@ const generateAssociationCode = (assoc, currentClassName) => {
 };
 
 // Función para generar el código del repositorio
-const generateRepositoryCode = (className) => {
+const generateRepositoryCode = (className, proyectName) => {
   return `
-  package com.diagram.demo.repository;
+  package ${proyectName}.demo.repository;
   
-  import com.diagram.demo.model.${className};
+  import ${proyectName}.demo.model.${className};
   import org.springframework.data.jpa.repository.JpaRepository;
   import org.springframework.stereotype.Repository;
   
@@ -164,12 +167,12 @@ const generateRepositoryCode = (className) => {
 };
 
 // Función para generar el código del controlador
-const generateControllerCode = (className) => {
+const generateControllerCode = (className, proyectName) => {
   return `
-  package com.diagram.demo.controller;
+  package ${proyectName}.demo.controller;
   
-  import com.diagram.demo.model.${className};
-  import com.diagram.demo.service.${className}Service;
+  import ${proyectName}.demo.model.${className};
+  import ${proyectName}.demo.service.${className}Service;
   import org.springframework.beans.factory.annotation.Autowired;
   import org.springframework.http.ResponseEntity;
   import org.springframework.web.bind.annotation.*;
@@ -210,12 +213,12 @@ const generateControllerCode = (className) => {
 };
 
 // Función para generar el código del servicio
-const generateServiceCode = (className) => {
+const generateServiceCode = (className, proyectName) => {
   return `
-  package com.diagram.demo.service;
+  package ${proyectName}.demo.service;
   
-  import com.diagram.demo.model.${className};
-  import com.diagram.demo.repository.${className}Repository;
+  import ${proyectName}.demo.model.${className};
+  import ${proyectName}.demo.repository.${className}Repository;
   import org.springframework.beans.factory.annotation.Autowired;
   import org.springframework.stereotype.Service;
   

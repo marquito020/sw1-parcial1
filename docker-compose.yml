@@ -4,7 +4,7 @@ services:
     container_name: backend
     environment:
       - PORT=4000
-      - DB_URI=mongodb://mongo:27017/sw1-parcial2
+      - DB_URI=mongodb+srv://sw1:marco@cluster0.uodlpmi.mongodb.net/?retryWrites=true&w=majority
       - SECRET_KEY=mySecretKey
     ports:
       - "4000:4000"
@@ -14,6 +14,7 @@ services:
       - ./backend:/app
     networks:
       - app-network
+    restart: always  # Asegura que el contenedor esté siempre activo
 
   frontend:
     build: ./frontend
@@ -23,13 +24,15 @@ services:
       - VITE_SOCKET_URL=http://localhost:4000
       - VITE_BASE_URL=/
     ports:
-      - "5173:5173"
+      - "8080:8080"
     depends_on:
       - backend
     volumes:
-      - ./frontend:/app   # Solo copia el código fuente, no el directorio node_modules
+      - ./frontend:/usr/src/app  # Monta el código fuente
+      - /usr/src/app/node_modules  # Volumen anónimo para node_modules
     networks:
       - app-network
+    restart: always  # Asegura que el contenedor esté siempre activo
 
   mongo:
     image: mongo:6.0
