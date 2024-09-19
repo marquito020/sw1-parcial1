@@ -12,6 +12,7 @@ services:
       - mongo
     volumes:
       - ./backend:/app
+      - /app/node_modules # Asegura que no copie node_modules local
     networks:
       - app-network
     restart: always  # Asegura que el contenedor esté siempre activo
