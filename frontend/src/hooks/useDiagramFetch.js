@@ -26,6 +26,7 @@ export const useDiagramFetch = () => {
         setLoading(true);
         try {
           const data = await getDiagramsByUserId(user._id);
+          console.log("Diagrams by user:", data);
           setDiagrams(data);
           hasFetched.current = true;  // Controlar para que no haga más peticiones
         } catch (error) {

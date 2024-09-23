@@ -1,21 +1,44 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faTrash, faEdit } from '@fortawesome/free-solid-svg-icons';
 import { useDiagramFetch } from "../../hooks/useDiagramFetch";
-import { useUserFetch } from "../../hooks/userFetch";
+import { useState } from "react";
+import Modal from "react-modal";
+
+// Estilos opcionales para el modal
+const customStyles = {
+    content: {
+        top: '50%',
+        left: '50%',
+        right: 'auto',
+        bottom: 'auto',
+        marginRight: '-50%',
+        transform: 'translate(-50%, -50%)',
+    },
+};
+
+Modal.setAppElement('#root'); // Establece el elemento de la app para accesibilidad
 
 function ListDiagrams() {
     const { diagrams, deleteDiagramHook } = useDiagramFetch();
-    const { users } = useUserFetch();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedDiagramId, setSelectedDiagramId] = useState(null);
 
-    // Crear un diccionario (map) para un acceso más rápido a los usuarios por su _id
-    const userMap = users.reduce((acc, user) => {
-        acc[user._id] = `${user.firstName} ${user.lastName}`;
-        return acc;
-    }, {});
+    const openModal = (id) => {
+        setSelectedDiagramId(id);
+        setIsModalOpen(true);
+    };
 
-    const deleteDiagram = (id) => {
-        deleteDiagramHook(id);
-        window.location.href = "/private/diagrams";
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedDiagramId(null);
+    };
+
+    const confirmDelete = () => {
+        if (selectedDiagramId) {
+            deleteDiagramHook(selectedDiagramId);
+            window.location.href = "/private/diagrams";
+        }
+        closeModal();
     };
 
     return (
@@ -39,33 +62,25 @@ function ListDiagrams() {
                                         <tr key={diagram._id}>
                                             <td className="px-6 py-4 whitespace-nowrap">{diagram.name}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                {/* Usar el mapa para obtener el nombre del anfitrión */}
-                                                {userMap[diagram.anfitrion] || "Anfitrión desconocido"}
+                                                {diagram.anfitrion.firstName} {diagram.anfitrion.lastName}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                {/* Mostrar los nombres de los participantes usando el map */}
-                                                {diagram.participantes
-                                                    .map((participanteId) => userMap[participanteId] || "Participante desconocido")
-                                                    .join(", ")
-                                                }
+                                                {diagram.participantes.map((participante) => `${participante.firstName} ${participante.lastName}`).join(", ")}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap flex items-center space-x-2">
-                                                {/* Botón Ver */}
                                                 <a href={`/private/diagrams/${diagram._id}`} className="text-indigo-600 hover:text-indigo-900 flex items-center space-x-1">
                                                     <FontAwesomeIcon icon={faEye} />
                                                     <span>Ver</span>
                                                 </a>
-                                                
-                                                {/* Botón Eliminar */}
+
                                                 <button
-                                                    onClick={() => deleteDiagram(diagram._id)}
+                                                    onClick={() => openModal(diagram._id)}
                                                     className="text-red-600 hover:text-red-900 flex items-center space-x-1"
                                                 >
                                                     <FontAwesomeIcon icon={faTrash} />
                                                     <span>Eliminar</span>
                                                 </button>
-                                                
-                                                {/* Botón Editar */}
+
                                                 <a href={`/private/diagrams/edit/${diagram._id}`} className="text-indigo-600 hover:text-indigo-900 flex items-center space-x-1">
                                                     <FontAwesomeIcon icon={faEdit} />
                                                     <span>Editar</span>
@@ -75,6 +90,32 @@ function ListDiagrams() {
                                     ))}
                                 </tbody>
                             </table>
+
+                            {/* Modal para confirmar eliminación */}
+                            <Modal
+                                isOpen={isModalOpen}
+                                onRequestClose={closeModal}
+                                style={customStyles}
+                                contentLabel="Confirmar eliminación"
+                            >
+                                <h2 className="text-xl font-bold">Confirmar eliminación</h2>
+                                <p>¿Estás seguro de que quieres eliminar este diagrama?</p>
+                                <div className="flex justify-end space-x-4 mt-4">
+                                    <button
+                                        onClick={closeModal}
+                                        className="bg-gray-300 hover:bg-gray-400 text-black py-2 px-4 rounded"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={confirmDelete}
+                                        className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded"
+                                    >
+                                        Eliminar
+                                    </button>
+                                </div>
+                            </Modal>
+
                         </div>
                     </div>
                 </div>

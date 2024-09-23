@@ -1,5 +1,6 @@
 import { Schema, model } from "mongoose";
 import { Diagram } from "../interface/diagram.interface";
+import userModel from "../models/user.model";
 
 const diagramSchema = new Schema<Diagram>({
   name: {
@@ -10,15 +11,15 @@ const diagramSchema = new Schema<Diagram>({
     type: String,
   },
   anfitrion: {
-    type: String,
-    required: true,
+    type: Schema.Types.ObjectId, // Asegúrate de que es un ObjectId refiriéndose a un modelo de usuario
+    ref: "User", // Referencia al modelo de usuario
   },
   qr: {
     type: String,
   },
   participantes: [{
-    type: Array,
-    required: true,
+    type: Schema.Types.ObjectId, // Debe ser una lista de ObjectId refiriéndose al modelo de usuario
+    ref: "User",
   }],
 });
 

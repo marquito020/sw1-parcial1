@@ -5,138 +5,150 @@ import { useEffect, useState } from "react";
 
 export default function EditDiagram() {
     const { _id } = useParams();
-    const { createInvitationHook, getDiagramByIdHook } = useDiagramFetch();
+    const { createInvitationHook, getDiagramByIdHook, updateDiagramHook } = useDiagramFetch();
     const { users } = useUserFetch();
 
     const [diagram, setDiagram] = useState({});
     const [name, setName] = useState("");
     const [anfitrion, setAnfitrion] = useState("");
     const [participantes, setParticipantes] = useState([]);
-    const [selectedParticipantes, setSelectedParticipantes] = useState();
+    const [availableUsers, setAvailableUsers] = useState([]); // Usuarios disponibles para agregar
 
+    // Fetch diagram data and users on mount
     useEffect(() => {
         const fetchData = async () => {
-            const data = await getDiagramByIdHook(_id);
-            setDiagram(data.plantUML);
-            setName(data.name);
-            setAnfitrion(data.anfitrion);
-            setParticipantes(data.participantes);
-        }
+            try {
+                const data = await getDiagramByIdHook(_id);
+                setDiagram(data.plantUML);
+                setName(data.name);
+                setAnfitrion(data.anfitrion);
+                setParticipantes(data.participantes);
+            } catch (error) {
+                console.error("Error fetching data: ", error);
+            }
+        };
         fetchData();
     }, [_id]);
 
+    useEffect(() => {
+        // Filtrar usuarios disponibles (excluyendo participantes actuales y anfitrión)
+        setAvailableUsers(users.filter(user => !participantes.some(p => p._id === user._id) && user._id !== anfitrion));
+    }, [users, participantes, anfitrion]);
+
+    // Mover participante de la lista disponible a la lista de participantes
+    const addParticipante = (userId) => {
+        const userToAdd = availableUsers.find(user => user._id === userId);
+        if (userToAdd) {
+            setParticipantes([...participantes, userToAdd]);
+            setAvailableUsers(availableUsers.filter(user => user._id !== userId)); // Quitar de los disponibles
+        }
+    };
+
+    // Remover participante de la lista de participantes
+    const removeParticipante = (userId) => {
+        const userToRemove = participantes.find(p => p._id === userId);
+        if (userToRemove) {
+            setAvailableUsers([...availableUsers, userToRemove]); // Añadir a los disponibles
+            setParticipantes(participantes.filter(p => p._id !== userId)); // Quitar de los participantes actuales
+        }
+    };
+
+    // Update diagram logic
     const updateDiagram = async () => {
         try {
-
-            if (selectedParticipantes !== undefined) {
-                participantes.unshift(selectedParticipantes[0]);
+            const updatedData = { diagram, name, anfitrion, participantes };
+            if (participantes.length < 1) {
+                updateDiagramHook(_id, updatedData);
+                window.location.href = "/private/diagrams";
+            } else {
+                await createInvitationHook(_id, updatedData);
+                window.location.href = "/private/diagrams";
             }
-            /* participantes.push(selectedParticipantes[0]); */
-            const data = await createInvitationHook(_id, { diagram: diagram, name: name, anfitrion: anfitrion, participantes: participantes });
-            console.log(data);
-            window.location.href = "/private/diagrams";
         } catch (error) {
-            console.log(error);
+            console.error("Error updating diagram: ", error);
         }
-    }
-
-    const selectParticipantes = () => {
-        const participantes = document.getElementById("participantes");
-        const options = participantes && participantes.options;
-        const values = [];
-        for (let i = 0; i < options.length; i++) {
-            if (options[i].selected) {
-                values.push(options[i].value);
-            }
-        }
-        console.log(values);
-        setSelectedParticipantes(values);
-    }
+    };
 
     return (
-        <div className="flex flex-col">
-            <div className="flex flex-col">
-                <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                    <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+        <div className="flex flex-col items-center py-8 px-4">
+            <div className="w-full max-w-4xl bg-white shadow-md rounded-lg p-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Editar Diagrama</h2>
 
-                        <div className="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {/* Nombre del Diagrama */}
+                    <div className="col-span-1">
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre del Diagrama</label>
+                        <input
+                            type="text"
+                            id="name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        />
+                    </div>
 
-                            <div className="px-4 py-5 bg-white sm:p-6">
-                                <div className="grid grid-cols-6 gap-6">
+                    {/* Anfitrión */}
+                    <div className="col-span-1">
+                        <label htmlFor="anfitrion" className="block text-sm font-medium text-gray-700">Anfitrión</label>
+                        <select
+                            id="anfitrion"
+                            value={anfitrion}
+                            onChange={(e) => setAnfitrion(e.target.value)}
+                            className="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        >
+                            {users.map((user) => (
+                                <option key={user._id} value={user._id}>
+                                    {`${user.firstName} ${user.lastName}`}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-                                    <div className="col-span-6 sm:col-span-3">
-                                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre</label>
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            id="name"
-                                            autoComplete="given-name"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                                        />
-                                    </div>
+                    {/* Seleccionar Participantes - Lista de usuarios disponibles */}
+                    <div className="col-span-1">
+                        <label htmlFor="participantes" className="block text-sm font-medium text-gray-700">Seleccionar Participantes</label>
+                        <ul className="mt-1 space-y-2">
+                            {availableUsers
+                                .filter(user => user._id !== anfitrion._id)
+                                .map(user => (
+                                    <li
+                                        key={user._id}
+                                        onDoubleClick={() => addParticipante(user._id)} // Doble clic para agregar participante
+                                        className="py-2 px-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-200"
+                                    >
+                                        {`${user.firstName} ${user.lastName}`}
+                                    </li>
+                                ))}
+                        </ul>
+                    </div>
 
-                                    <div className="col-span-6 sm:col-span-3">
-                                        <label htmlFor="anfitrion" className="block text-sm font-medium text-gray-700">Anfitrión</label>
-                                        <select
-                                            id="anfitrion"
-                                            name="anfitrion"
-                                            autoComplete="anfitrion"
-                                            value={anfitrion}
-                                            onChange={(e) => setAnfitrion(e.target.value)}
-                                            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                        >
-                                            {users.map((user) => (
-                                                <option key={user._id} value={user._id}>{user.firstName + " " + user.lastName}</option>
-                                            ))}
-                                        </select>
-                                    </div>
 
-                                    <div className="col-span-6 sm:col-span-3">
-                                        <label htmlFor="participantes" className="block text-sm font-medium text-gray-700">Seleccionar Participantes</label>
-                                        <select
-                                            id="participantes"
-                                            name="participantes"
-                                            autoComplete="participantes"
-                                            value={selectedParticipantes}
-                                            onChange={selectParticipantes}
-                                            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                            multiple
-                                        >
-                                            {users.filter(user => !participantes.some(participante => participante[0] === user._id))
-                                                .map(user => (
-                                                    <option key={user._id} value={user._id}>
-                                                        {user.firstName + " " + user.lastName}
-                                                    </option>
-                                                ))
-                                            }
+                    {/* Participantes Existentes */}
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-gray-700">Participantes Existentes</label>
+                        <ul className="mt-1 space-y-2">
+                            {participantes
+                                .filter(participante => participante._id !== anfitrion) // Excluir anfitrión de la lista
+                                .map(participante => (
+                                    <li
+                                        key={participante._id}
+                                        onDoubleClick={() => removeParticipante(participante._id)} // Doble clic para remover participante
+                                        className="py-2 px-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-200"
+                                    >
+                                        {`${participante.firstName} ${participante.lastName}`}
+                                    </li>
+                                ))}
+                        </ul>
+                    </div>
 
-                                        </select>
-                                    </div>
-
-                                    {/* Participantes Existentes */}
-                                    <div className="col-span-6 sm:col-span-3">
-                                        <label htmlFor="participantes" className="block text-sm font-medium text-gray-700">Participantes Existentes</label>
-                                        {participantes.map((participante) => (
-                                            console.log(participante),
-                                            <div key={participante} className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">{users.map((user) => (user._id === participante[0]) ? user.firstName + " " + user.lastName : "")}</div>
-                                        ))}
-                                    </div>
-
-                                    {/* Anfitrion Existente */}
-                                    <div className="col-span-6 sm:col-span-3">
-                                        <label htmlFor="anfitrion" className="block text-sm font-medium text-gray-700">Anfitrion Existente</label>
-                                        <div className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">{users.map((user) => (user._id === anfitrion) ? user.firstName + " " + user.lastName : "")}</div>
-                                    </div>
-                                    <div className="col-span-6 sm:col-span-3">
-                                        <button onClick={updateDiagram} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full" type="button">
-                                            Actualizar Diagrama
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    {/* Botón de actualizar */}
+                    <div className="col-span-2">
+                        <button
+                            onClick={updateDiagram}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-semibold"
+                        >
+                            Actualizar Diagrama
+                        </button>
                     </div>
                 </div>
             </div>

@@ -11,7 +11,7 @@ const getDiagrams = async () => {
 }
 
 const getDiagramById = async (id: string) => {
-    return await diagramModel.findById(id);
+    return await diagramModel.findById(id).populate("participantes anfitrion");
 }
 
 const createDiagram = async (diagram: Diagram) => {
@@ -20,7 +20,7 @@ const createDiagram = async (diagram: Diagram) => {
         anfitrion: diagram.anfitrion,
         plantUML: `@startuml
                     class User {
-                        id
+                        name
                     }
                 @enduml`,
         participantes: [],
@@ -63,13 +63,24 @@ const addParticipant = async (id: string, diagram: Diagram) => {
 const deleteDiagram = async (id: string, userId: string) => {
     console.log(id);
     console.log(userId);
-    if (userId == (await diagramModel.findById(id))!.anfitrion) {
+
+    // Buscar el diagrama y poblar el campo anfitrion para acceder al _id
+    const diagram = await diagramModel.findById(id).populate('anfitrion').exec();
+
+    if (!diagram) {
+        throw new Error("Diagrama no encontrado");
+    }
+
+    // Verificar si el anfitrion es el que desea eliminar
+    if (diagram.anfitrion && (diagram.anfitrion as any)._id.toString() === userId) {
         await diagramModel.findByIdAndDelete(id);
         console.log("Diagrama eliminado");
         return { message: "Diagrama eliminado" };
     }
+
     throw new Error("No eres el anfitrion");
 }
+
 
 const deleteParticipant = async (id: string, diagram: Diagram) => {
     const diagramParticipant = await diagramModel.findById(id);
@@ -82,9 +93,10 @@ const getDiagramsByUser = async (id: string) => {
     const diagrams = await diagramModel.find({
         $or: [
             { anfitrion: id },
-            { participantes: id }
+            { participantes: { $in: [id] } }
         ]
-    }).select("-plantUML");
+    }).select("-plantUML").populate("participantes anfitrion");
+    console.log(diagrams);
     return diagrams;
 }
 
