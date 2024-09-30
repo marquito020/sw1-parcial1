@@ -13,29 +13,39 @@ export default function ClassManager({ classes, setClasses, relationships, setRe
 
   // Expresión regular para detectar "id" en cualquier forma
   const idPattern = /\b(id)\b/i;
+  const classNamePattern = /^[A-Z][A-Za-z]*$/; // Primera letra mayúscula, no acepta espacios
+  const classNameEditPattern = /^[A-Z][A-Za-z]*$/; // No permite primera letra en minúscula
 
   // Función para agregar una clase
   const addClass = () => {
-    if (newClassName && newClassAttributes) {
-      const attributes = newClassAttributes.split(",").map(attr => attr.trim());
-
-      // Validación: no permitir "id" como atributo
-      if (attributes.some(attr => idPattern.test(attr))) {
-        setErrorMessage("No se permite usar 'id' como nombre de atributo.");
-        return;
-      }
-
-      const updatedClasses = [...classes, { name: newClassName, attributes }];
-      setClasses(updatedClasses);
-      setNewClassName("");
-      setNewClassAttributes("");
-      setErrorMessage(""); // Limpiar el mensaje de error
-      updateDiagram(updatedClasses, relationships, associations); // Actualizar el diagrama después de agregar la clase
+    if (!classNamePattern.test(newClassName)) {
+      setErrorMessage("El nombre de la clase debe empezar con una mayúscula y no debe contener espacios.");
+      return;
     }
+
+    const attributes = newClassAttributes.split(",").map(attr => attr.trim());
+
+    // Validación: no permitir "id" como atributo
+    if (attributes.some(attr => idPattern.test(attr))) {
+      setErrorMessage("No se permite usar 'id' como nombre de atributo.");
+      return;
+    }
+
+    const updatedClasses = [...classes, { name: newClassName, attributes }];
+    setClasses(updatedClasses);
+    setNewClassName("");
+    setNewClassAttributes("");
+    setErrorMessage(""); // Limpiar el mensaje de error
+    updateDiagram(updatedClasses, relationships, associations); // Actualizar el diagrama después de agregar la clase
   };
 
   // Función para editar el nombre de la clase seleccionada
   const editClassName = () => {
+    if (!classNameEditPattern.test(editingClassName)) {
+      setErrorMessage("El nombre editado de la clase debe empezar con una mayúscula.");
+      return;
+    }
+
     if (selectedClass) {
       const updatedClasses = classes.map(cls => {
         if (cls.name === selectedClass.name) {
@@ -277,7 +287,11 @@ ClassManager.propTypes = {
   setClasses: PropTypes.func.isRequired,
   relationships: PropTypes.array.isRequired,
   setRelationships: PropTypes.func.isRequired,
-  associations: PropTypes.array.isRequired,
+  associations: PropTypes.array,  // Cambia esto si no quieres que sea requerido
   setAssociations: PropTypes.func.isRequired,
   updateDiagram: PropTypes.func.isRequired,
+};
+
+ClassManager.defaultProps = {
+  associations: [],  // Valor por defecto si no se proporciona
 };

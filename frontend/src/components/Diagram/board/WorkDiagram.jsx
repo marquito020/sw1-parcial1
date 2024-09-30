@@ -21,6 +21,8 @@ import { Bars3Icon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/s
 
 import { generateAndExportXML } from './../../../utils/path-to-xml-export';
 import { generateAndDownloadZip } from "../../../utils/path-to-spring-boot";
+import { readXMLFile } from './../../../utils/path-to-utils'; // Cambia 'path-to-utils' por la ruta correcta
+import { importXML } from "./ImportFromXML";
 
 const { SOCKET_URL } = Config;
 
@@ -296,7 +298,7 @@ export default function WorkDiagram() {
         socket.emit("updateDiagram", { diagramId, diagramContent: plantUMLCode });
     };
 
-    const generatePlantUML = (updatedClasses = classes, updatedRelationships = relationships, updatedAssociations = associations) => {
+    const generatePlantUML = (updatedClasses = [], updatedRelationships = [], updatedAssociations = []) => {
         let plantUML = "@startuml\n";
 
         updatedClasses.forEach(cls => {
@@ -311,6 +313,7 @@ export default function WorkDiagram() {
         ];
 
         updatedRelationships.forEach(rel => {
+            console.log("Relación:", rel);
             const { from, to, type, class1Multiplicity, class2Multiplicity, name } = rel;
 
             if (!validTypes.includes(type)) {
@@ -363,17 +366,46 @@ export default function WorkDiagram() {
 
     const handleExportSpringBoot = () => {
         if (proyectName) {
+            // Verificar si las relaciones y asociaciones tienen datos válidos
+            const validRelationships = relationships && relationships.length ? relationships : [];
+            const validAssociations = associations && associations.length ? associations : [];
+            
             // Llamar a la función de exportar con el nombre del proyecto
-            generateAndDownloadZip(classes, relationships, associations, proyectName);
+            generateAndDownloadZip(classes, validRelationships, validAssociations, proyectName);
         } else {
             setShowModal(true); // Mostrar modal si no hay un nombre de proyecto
         }
     };
+    
 
     const handleProjectNameSubmit = (name) => {
         setProyectName(name); // Guardar el nombre del proyecto
         generateAndDownloadZip(classes, relationships, associations, name); // Ejecutar la exportación
     };
+
+    // Importar XML y generar clases, relaciones, asociaciones
+    const handleImportXML = async (file) => {
+        try {
+            const xmlString = await readXMLFile(file);
+
+            const { classes, relationships, associations } = importXML(xmlString);
+
+            console.log("Clases importadas:", classes);
+            console.log("Relaciones importadas:", relationships);
+
+            // Actualizar el estado o trabajar con las clases, relaciones y asociaciones importadas
+            setClasses(classes);
+            setRelationships(relationships);
+            setAssociations(associations);
+
+            console.log("Clases:", classes);
+            console.log("Relaciones:", relationships);
+            console.log("Asociaciones:", associations);
+        } catch (error) {
+            console.error("Error al importar el archivo XML:", error);
+        }
+    };
+
 
     return (
         <div className="flex w-full h-full">
@@ -402,6 +434,13 @@ export default function WorkDiagram() {
                         <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg"
                             onClick={handleExportSpringBoot}>Exportar Spring Boot</button>
 
+                        <input
+                            type="file"
+                            accept=".xml"
+                            onChange={(e) => handleImportXML(e.target.files[0])}
+                        />
+
+
                         {/* Modal para ingresar el nombre del proyecto */}
                         <ProjectNameModal
                             show={showModal}
@@ -423,7 +462,7 @@ export default function WorkDiagram() {
                                     setClasses={setClasses}
                                     relationships={relationships}
                                     setRelationships={setRelationships}
-                                    associations={associations}
+                                    associations={associations || []}  // <-- Aquí asegúrate de que no sea undefined
                                     setAssociations={setAssociations}
                                     updateDiagram={handleUpdateDiagramContent}
                                 />
