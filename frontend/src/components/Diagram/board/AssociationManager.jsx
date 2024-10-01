@@ -3,11 +3,12 @@ import PropTypes from "prop-types";
 
 AssociationManager.propTypes = {
   classes: PropTypes.array.isRequired,
+  relationships: PropTypes.array.isRequired,
   associations: PropTypes.array.isRequired,
   setAssociations: PropTypes.func.isRequired,
   updateDiagram: PropTypes.func.isRequired
 };
-export default function AssociationManager({ classes, associations, setAssociations, updateDiagram }) {
+export default function AssociationManager({ classes, relationships, associations, setAssociations, updateDiagram }) {
 
   const [class1, setClass1] = useState("");
   const [class2, setClass2] = useState("");
@@ -29,7 +30,7 @@ export default function AssociationManager({ classes, associations, setAssociati
       if (!existingAssociation) {
         setAssociations(prevAssociations => {
           const updatedAssociations = [...prevAssociations, newAssociation];
-          updateDiagram(classes, [], updatedAssociations); // Actualizar el diagrama
+          updateDiagram(classes, relationships, updatedAssociations); // Actualizar el diagrama
           return updatedAssociations;
         });
       }

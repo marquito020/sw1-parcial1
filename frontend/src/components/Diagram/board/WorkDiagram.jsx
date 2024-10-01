@@ -23,6 +23,8 @@ import { generateAndExportXML } from './../../../utils/path-to-xml-export';
 import { generateAndDownloadZip } from "../../../utils/path-to-spring-boot";
 import { readXMLFile } from './../../../utils/path-to-utils'; // Cambia 'path-to-utils' por la ruta correcta
 import { importXML } from "./ImportFromXML";
+import ForeignKeyModal from "./ForeignKeyModal";
+import ForeignKeyAssociationModal from "./ForeignKeyAssociationModal";
 
 const { SOCKET_URL } = Config;
 
@@ -58,6 +60,15 @@ export default function WorkDiagram() {
     // Nombre del proyecto Spring Boot
     const [proyectName, setProyectName] = useState("");
     const [showModal, setShowModal] = useState(false);
+
+    const [showForeignKeyModal, setShowForeignKeyModal] = useState(false);
+    const [showProjectNameModal, setShowProjectNameModal] = useState(false);
+    const [foreignKeySelections, setForeignKeySelections] = useState({});
+
+    // Modal Assocaition
+    const [showForeignKeyAssociationModal, setShowForeignKeyAssociationModal] = useState(false);
+    const [foreignKeyAssociation, setForeignKeyAssociation] = useState({});
+
 
     /* console.log("Relaciones:", relationships); */
     useEffect(() => {
@@ -333,12 +344,18 @@ export default function WorkDiagram() {
         updatedAssociations.forEach(assoc => {
             if (assoc.class1 && assoc.class2 && assoc.associationClass) {
                 if (!plantUML.includes(`class ${assoc.associationClass}`)) {
-                    plantUML += `class ${assoc.associationClass} {\n`;
-                    plantUML += `}\n`;
+                    /* plantUML += `class ${assoc.associationClass} {\n`;
+                    plantUML += `}\n`; */
+                    // Buscar en el plantUML la seccion de class y agregar la clase de asociacion
+                    const classAssociation = `class ${assoc.associationClass} {\n}\n`;
+                    plantUML = plantUML.replace("@startuml", `@startuml\n${classAssociation}`);
                 }
 
-                plantUML += `${assoc.class1} "0..*" - "1..*" ${assoc.class2}\n`;
-                plantUML += `(${assoc.class1}, ${assoc.class2}) .. ${assoc.associationClass}\n`;
+                /* plantUML += `${assoc.class1} "0..*" - "1..*" ${assoc.class2}\n`;
+                plantUML += `(${assoc.class1}, ${assoc.class2}) .. ${assoc.associationClass}\n`; */
+                // Buscar en el plantUML la seccion de relaciones y agregar la relacion al final
+                const relationship = `${assoc.class1} "0..*" - "1..*" ${assoc.class2}\n(${assoc.class1}, ${assoc.class2}) .. ${assoc.associationClass}\n`;
+                plantUML += relationship;
                 /* plantUML += `class ${assoc.associationClass} {\n`;
                 plantUML += `}\n`;
                 plantUML += `${assoc.class1} "0..*" - "1..*" ${assoc.class2}\n`;
@@ -364,23 +381,37 @@ export default function WorkDiagram() {
         generateAndExportXML(diagramName, diagramAnfitrion, classes, relationships, associations);
     };
 
-    const handleExportSpringBoot = () => {
-        if (proyectName) {
-            // Verificar si las relaciones y asociaciones tienen datos válidos
-            const validRelationships = relationships && relationships.length ? relationships : [];
-            const validAssociations = associations && associations.length ? associations : [];
-            
-            // Llamar a la función de exportar con el nombre del proyecto
-            generateAndDownloadZip(classes, validRelationships, validAssociations, proyectName);
-        } else {
-            setShowModal(true); // Mostrar modal si no hay un nombre de proyecto
-        }
-    };
-    
-
+    // Manejar la presentación del modal para la clave foránea
     const handleProjectNameSubmit = (name) => {
         setProyectName(name); // Guardar el nombre del proyecto
-        generateAndDownloadZip(classes, relationships, associations, name); // Ejecutar la exportación
+        setShowProjectNameModal(false); // Cerrar el modal de nombre del proyecto
+        setShowForeignKeyModal(true); // Abrir el modal para seleccionar la clave foránea
+    };
+
+    const handleForeignKeySubmit = (selections) => {
+        setForeignKeySelections(selections); // Guardar las selecciones
+        console.log("Selecciones de clave foránea:", foreignKeySelections);
+        setShowForeignKeyModal(false); // Cerrar el modal de clave foránea
+
+        if (associations.length > 0) {
+            setShowForeignKeyAssociationModal(true); // Mostrar el modal para seleccionar la clase que llevará la clave foránea
+        } else {
+            // Proceder con la exportación después de la selección
+            generateAndDownloadZip(classes, relationships, associations, proyectName, selections, {});
+        }
+    };
+
+    const handleForeignKeyAssociationSubmit = (selections) => {
+        setForeignKeyAssociation(selections); // Guardar las selecciones
+        console.log("Selecciones de clave foránea:", foreignKeyAssociation);
+        setShowForeignKeyAssociationModal(false); // Cerrar el modal de clave foránea
+
+        // Proceder con la exportación después de la selección
+        generateAndDownloadZip(classes, relationships, associations, proyectName, selections, foreignKeyAssociation);
+    };
+
+    const handleExportSpringBoot = () => {
+        setShowProjectNameModal(true); // Mostrar el modal para el nombre del proyecto
     };
 
     // Importar XML y generar clases, relaciones, asociaciones
@@ -433,6 +464,29 @@ export default function WorkDiagram() {
 
                         <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg"
                             onClick={handleExportSpringBoot}>Exportar Spring Boot</button>
+
+                        {/* Modal para ingresar el nombre del proyecto */}
+                        <ProjectNameModal
+                            show={showProjectNameModal}
+                            onClose={() => setShowProjectNameModal(false)}
+                            onSubmit={handleProjectNameSubmit}
+                        />
+
+                        {/* Modal para seleccionar la clase que llevará la clave foránea */}
+                        <ForeignKeyModal
+                            show={showForeignKeyModal}
+                            onClose={() => setShowForeignKeyModal(false)}
+                            onSubmit={handleForeignKeySubmit}
+                            relationships={relationships}
+                        />
+
+                        {/* Modal para seleccionar la clase que llevará la clave foránea */}
+                        <ForeignKeyAssociationModal
+                            show={showForeignKeyAssociationModal}
+                            onClose={() => setShowForeignKeyAssociationModal(false)}
+                            onSubmit={handleForeignKeyAssociationSubmit}
+                            associations={associations} // Enviar asociaciones
+                        />
 
                         <input
                             type="file"
@@ -498,6 +552,7 @@ export default function WorkDiagram() {
                             {showAssociationManager && (
                                 <AssociationManager
                                     classes={classes}
+                                    relationships={relationships}
                                     associations={associations}
                                     setAssociations={setAssociations}
                                     updateDiagram={handleUpdateDiagramContent}
