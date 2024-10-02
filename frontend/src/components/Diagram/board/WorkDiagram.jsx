@@ -407,7 +407,7 @@ export default function WorkDiagram() {
         setShowForeignKeyAssociationModal(false); // Cerrar el modal de clave foránea
 
         // Proceder con la exportación después de la selección
-        generateAndDownloadZip(classes, relationships, associations, proyectName, selections, foreignKeyAssociation);
+        generateAndDownloadZip(classes, relationships, associations, proyectName, foreignKeySelections, selections);
     };
 
     const handleExportSpringBoot = () => {

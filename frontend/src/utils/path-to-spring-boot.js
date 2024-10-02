@@ -26,9 +26,7 @@ export const generateAndDownloadZip = (
       dto: [],
       service: {
         imports: [],
-        importAssociation: [],
         autowired: [],
-        autowiredAssociation: [],
         seters: cls.attributes.map((attr) => {
           return `${cls.name.toLowerCase()}.set${
             attr.charAt(0).toUpperCase() + attr.slice(1)
@@ -38,6 +36,10 @@ export const generateAndDownloadZip = (
         }),
         setAssociation: [],
         setRelationships: [],
+      },
+      controller: {
+        importsAssociation: [],
+        functionsAssociation: [],
       },
     };
   });
@@ -57,15 +59,8 @@ export const generateAndDownloadZip = (
         fk.foreignKey === dataClass.name
     );
 
-    if (class1Multiplicity === "*" && class2Multiplicity === "*") {
-      dataClass.model.push(`@ManyToMany
-      @JoinTable(name = "${dataClass.name.toLowerCase()}_${targetClass.toLowerCase()}",
-      joinColumns = @JoinColumn(name = "id_${dataClass.name.toLowerCase()}"),
-      inverseJoinColumns = @JoinColumn(name = "id_${targetClass.toLowerCase()}"))
-      private Set<${targetClass}> ${targetClass.toLowerCase()}s; \n `);
-
-      
-    } else if (
+    /* if (class1Multiplicity === "*" && class2Multiplicity === "*") { */
+    if (
       (class1Multiplicity === "*" ||
         class1Multiplicity === "0..*" ||
         class1Multiplicity === "1..*") &&
@@ -80,7 +75,7 @@ export const generateAndDownloadZip = (
         dataClass.dto.push(`private Long ${to.toLowerCase()}Id; \n  `);
 
         dataClass.service.imports.push(
-          `import ${projectName}.demo.model.${to}; \n
+          `import ${projectName}.demo.model.${to};
 import ${projectName}.demo.repository.${to}Repository;
           `
         );
@@ -124,7 +119,7 @@ import ${projectName}.demo.repository.${to}Repository;
         dataClass.dto.push(`private Long ${from.toLowerCase()}Id; \n  `);
 
         dataClass.service.imports.push(
-          `import ${projectName}.demo.model.${from}; \n
+          `import ${projectName}.demo.model.${from};
 import ${projectName}.demo.repository.${from}Repository;
           `
         );
@@ -153,7 +148,7 @@ import ${projectName}.demo.repository.${from}Repository;
       dataClass.dto.push(`private Long ${targetClass.toLowerCase()}Id; \n `);
 
       dataClass.service.imports.push(
-        `import ${projectName}.demo.model.${targetClass}; \n
+        `import ${projectName}.demo.model.${targetClass};
 import ${projectName}.demo.repository.${targetClass}Repository;
         `
       );
@@ -185,7 +180,7 @@ import ${projectName}.demo.repository.${targetClass}Repository;
   const generateEntityCode = (
     className,
     attributes = [],
-    associations = [],
+    /* associations = [], */
     model = []
   ) => {
     return `
@@ -213,12 +208,6 @@ public class ${className} implements Serializable {
 
     ${model.join("\n")}
 
-    ${associations
-      .filter(
-        (assoc) => assoc.class1 === className || assoc.class2 === className
-      )
-      .map((assoc) => generateAssociationCode(assoc, className))
-      .join("\n    ")}
 }
     `;
   };
@@ -239,18 +228,20 @@ public interface ${className}Repository extends JpaRepository<${className}, Long
   };
 
   // Función para generar el código del controlador
-  const generateControllerCode = (className) => {
+  const generateControllerCode = (className, controller) => {
     return `
 package ${projectName}.demo.controller;
 
 import ${projectName}.demo.dto.${className}DTO;
 import ${projectName}.demo.model.${className};
 import ${projectName}.demo.service.${className}Service;
+${controller.importsAssociation.join("\n  ")}
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 import java.util.Optional;
 
 @RestController
@@ -282,6 +273,8 @@ public class ${className}Controller {
         ${className.toLowerCase()}Service.deleteById(id);
         return ResponseEntity.noContent().build();
     }
+
+    ${controller.functionsAssociation.join("\n  ")}
 }
     `;
   };
@@ -293,11 +286,13 @@ package ${projectName}.demo.service;
 import ${projectName}.demo.dto.${className}DTO;
 import ${projectName}.demo.model.${className};
 import ${projectName}.demo.repository.${className}Repository;
-${service.imports.join("\n  ")}
+${service.imports}
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.Optional;
 @Service
@@ -305,7 +300,8 @@ public class ${className}Service {
     @Autowired
     private ${className}Repository ${className.toLowerCase()}Repository;
 
-    ${service.autowired.join("\n  ")}
+    ${service.autowired}
+    ${service.setAssociation}
     public List<${className}> findAll() {
         return ${className.toLowerCase()}Repository.findAll();
     }
@@ -376,6 +372,93 @@ public class GlobalExceptionHandler {
     `;
   };
 
+  // Función para generar el código de las asociaciones intermedias (tablas intermedias)
+  const generateAssociationCode = (assoc, dataClass) => {
+    const {
+      class1,
+      class2,
+      /* associationClass, */
+      class1Multiplicity = "",
+      class2Multiplicity = "",
+    } = assoc;
+
+    const targetClass = class1 === dataClass.name ? class2 : class1;
+
+    console.log("TargetClass", targetClass);
+
+    console.log("class1", class1);
+    console.log("class2", class2);
+    console.log("class1Multiplicity", class1Multiplicity);
+    console.log("class2Multiplicity", class2Multiplicity);
+    console.log("targetClass", targetClass);
+    console.log("dataClass", dataClass);
+    console.log("foreignKeysAssociations", foreignKeysAssociations);
+    console.log("length", foreignKeysAssociations.length);
+
+    if (foreignKeysAssociations.length > 0) {
+      dataClass.model.push(`        @ManyToMany
+        @JoinTable(name = "${dataClass.name.toLowerCase()}_${targetClass.toLowerCase()}",
+        joinColumns = @JoinColumn(name = "id_${dataClass.name.toLowerCase()}"),
+        inverseJoinColumns = @JoinColumn(name = "id_${targetClass.toLowerCase()}"))
+        private Set<${targetClass}> ${targetClass.toLowerCase()}s; \n `);
+      foreignKeysAssociations.forEach((fk) => {
+        if (fk.class1 === class1 && fk.class2 === class2) {
+          if (dataClass.name === fk.classSelector) {
+            dataClass.service.imports.push(
+              `import ${projectName}.demo.model.${targetClass};
+import ${projectName}.demo.repository.${targetClass}Repository;`
+            );
+            dataClass.service.autowired.push(
+              `@Autowired
+    private ${targetClass}Repository ${targetClass.toLowerCase()}Repository; \n `);
+
+            dataClass.service.setAssociation.push(
+              `public Set<${targetClass}> assign${targetClass}sTo${
+                dataClass.name
+              } (Long ${dataClass.name.toLowerCase()}Id, Set<Long> ${targetClass.toLowerCase()}Ids) {
+    ${
+      dataClass.name
+    } ${dataClass.name.toLowerCase()} = ${dataClass.name.toLowerCase()}Repository.findById(${dataClass.name.toLowerCase()}Id)
+            .orElseThrow(() -> new EntityNotFoundException("${
+              dataClass.name
+            } con ID " + ${dataClass.name.toLowerCase()}Id + " no encontrado"));
+
+    // Convertimos la lista de ${targetClass.toLowerCase()}s a un Set
+    Set<${targetClass}> ${targetClass.toLowerCase()}s = new HashSet<>(${targetClass.toLowerCase()}Repository.findAllById(${targetClass.toLowerCase()}Ids));
+    if (${targetClass.toLowerCase()}s.isEmpty()) {
+        throw new EntityNotFoundException("No se encontraron ${targetClass.toLowerCase()}s con los IDs proporcionados");
+    }
+
+    ${dataClass.name.toLowerCase()}.set${targetClass}s(${targetClass.toLowerCase()}s);
+    ${dataClass.name.toLowerCase()}Repository.save(${dataClass.name.toLowerCase()});
+
+    return ${dataClass.name.toLowerCase()}.get${targetClass}s();
+} \n `
+            );
+
+            dataClass.controller.importsAssociation.push(
+              `import ${projectName}.demo.model.${targetClass};`
+            );
+
+            dataClass.controller.functionsAssociation.push(
+              `@PostMapping("/{${dataClass.name.toLowerCase()}Id}/${targetClass.toLowerCase()}s")
+    public ResponseEntity<Set<${targetClass}>> assign${targetClass}sTo${
+                dataClass.name
+              }(@PathVariable Long ${dataClass.name.toLowerCase()}Id, @RequestBody Set<Long> ${
+                targetClass.toLowerCase()
+              }Ids) {
+        Set<${targetClass}> ${targetClass.toLowerCase()}s = ${dataClass.name.toLowerCase()}Service.assign${targetClass}sTo${
+                dataClass.name
+              }(${dataClass.name.toLowerCase()}Id, ${targetClass.toLowerCase()}Ids);
+        return ResponseEntity.ok(${targetClass.toLowerCase()}s);
+    }`
+            );
+          }
+        }
+      });
+    }
+  };
+
   // Generar archivos de entidades, repositorios, controladores y servicios
   allDataClass.forEach((dataClass) => {
     dataClass = relationships
@@ -386,9 +469,10 @@ public class GlobalExceptionHandler {
   allDataClass.forEach((dataClass) => {
     dataClass = associations
       .filter(
-        (assoc) => assoc.class1 === dataClass.name || assoc.class2 === dataClass.name
+        (assoc) =>
+          assoc.class1 === dataClass.name || assoc.class2 === dataClass.name
       )
-      .map((assoc) => getDataRelationship(assoc, dataClass));
+      .map((assoc) => generateAssociationCode(assoc, dataClass));
   });
 
   console.log("allDataClass", allDataClass);
@@ -408,7 +492,7 @@ public class GlobalExceptionHandler {
         cls.model || []
       );
       const repoCode = generateRepositoryCode(cls.name);
-      const controllerCode = generateControllerCode(cls.name);
+      const controllerCode = generateControllerCode(cls.name, cls.controller);
       const serviceCode = generateServiceCode(cls.name, cls.service);
       const dtoCode = generateDTOCode(cls.name, cls.attributes, cls.dto || []);
       const exceptionCode = generateExceptionCode();
@@ -506,27 +590,3 @@ const generateRelationshipCode = (rel, currentClassName) => {
   }
   return ""; // Si no coincide con ningún caso, retornar vacío
 }; */
-
-// Función para generar el código de las asociaciones intermedias (tablas intermedias)
-const generateAssociationCode = (assoc, currentClassName) => {
-  const {
-    class1,
-    class2,
-    associationClass,
-    class1Multiplicity = "",
-    class2Multiplicity = "",
-  } = assoc;
-
-  if (class1 === currentClassName || class2 === currentClassName) {
-    const targetClass = class1 === currentClassName ? class2 : class1;
-
-    return `
-    @ManyToMany
-    @JoinTable(name = "${currentClassName.toLowerCase()}_${targetClass.toLowerCase()}",
-    joinColumns = @JoinColumn(name = "id_${currentClassName.toLowerCase()}"),
-    inverseJoinColumns = @JoinColumn(name = "id_${targetClass.toLowerCase()}"))
-    private Set<${targetClass}> ${targetClass.toLowerCase()}s;
-    `;
-  }
-  return "";
-};
