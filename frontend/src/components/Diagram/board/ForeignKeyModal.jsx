@@ -10,6 +10,8 @@ const ForeignKeyModal = ({ show, onClose, onSubmit, relationships }) => {
             (sel) => !(sel.class1 === relation.from && sel.class2 === relation.to)
         );
 
+        console.log("Updated selections:", updatedSelections);
+
         setForeignKeySelections([
             ...updatedSelections,
             {
@@ -21,6 +23,7 @@ const ForeignKeyModal = ({ show, onClose, onSubmit, relationships }) => {
     };
 
     const handleSubmit = () => {
+        
         onSubmit(foreignKeySelections);
         onClose();
     };

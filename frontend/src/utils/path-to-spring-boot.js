@@ -16,6 +16,19 @@ export const generateAndDownloadZip = (
   console.log("Nombre del proyecto:", projectName);
   console.log("Claves foráneas:", foreignKeys);
   console.log("Claves foráneas de asociaciones:", foreignKeysAssociations);
+
+  relationships.map((rel) => {
+    if (rel.type === "--|>") {
+      foreignKeys.push({
+        class1: rel.from,
+        class2: rel.to,
+        foreignKey: rel.from,
+      });
+    }
+  });
+
+  console.log("Claves foráneas actualizadas:", foreignKeys);
+
   const zip = new JSZip();
 
   const allDataClass = classes.map((cls) => {
@@ -83,7 +96,8 @@ import ${projectName}.demo.repository.${to}Repository;
         //* Asigna el autowired al servicio
         dataClass.service.autowired.push(
           `@Autowired
-    private ${to}Repository ${to.toLowerCase()}Repository;`);
+    private ${to}Repository ${to.toLowerCase()}Repository;`
+        );
 
         //* Asigna el setRelationships al servicio
         dataClass.service.setRelationships.push(
@@ -126,7 +140,8 @@ import ${projectName}.demo.repository.${from}Repository;
         //* Asigna el autowired al servicio
         dataClass.service.autowired.push(
           `@Autowired
-    private ${from}Repository ${from.toLowerCase()}Repository;`);
+    private ${from}Repository ${from.toLowerCase()}Repository;`
+        );
 
         //* Asigna el setRelationships al servicio
         dataClass.service.setRelationships.push(
@@ -154,7 +169,8 @@ import ${projectName}.demo.repository.${targetClass}Repository;
       //* Asigna el autowired al servicio
       dataClass.service.autowired.push(
         `@Autowired
-    private ${targetClass}Repository ${targetClass.toLowerCase()}Repository;`);
+    private ${targetClass}Repository ${targetClass.toLowerCase()}Repository;`
+      );
 
       //* Asigna el setRelationships al servicio
       dataClass.service.setRelationships.push(
@@ -391,15 +407,16 @@ import ${projectName}.demo.repository.${targetClass}Repository;`
             );
             dataClass.service.autowired.push(
               `@Autowired
-    private ${targetClass}Repository ${targetClass.toLowerCase()}Repository;`);
+    private ${targetClass}Repository ${targetClass.toLowerCase()}Repository;`
+            );
 
             dataClass.service.setAssociation.push(
               `public Set<${targetClass}> assign${targetClass}sTo${
                 dataClass.name
               } (Long ${dataClass.name.toLowerCase()}Id, Set<Long> ${targetClass.toLowerCase()}Ids) {
         ${
-      dataClass.name
-    } ${dataClass.name.toLowerCase()} = ${dataClass.name.toLowerCase()}Repository.findById(${dataClass.name.toLowerCase()}Id)
+          dataClass.name
+        } ${dataClass.name.toLowerCase()} = ${dataClass.name.toLowerCase()}Repository.findById(${dataClass.name.toLowerCase()}Id)
             .orElseThrow(() -> new EntityNotFoundException("${
               dataClass.name
             } con ID " + ${dataClass.name.toLowerCase()}Id + " no encontrado"));
@@ -425,9 +442,7 @@ import ${projectName}.demo.repository.${targetClass}Repository;`
               `@PostMapping("/{${dataClass.name.toLowerCase()}Id}/${targetClass.toLowerCase()}s")
     public ResponseEntity<Set<${targetClass}>> assign${targetClass}sTo${
                 dataClass.name
-              }(@PathVariable Long ${dataClass.name.toLowerCase()}Id, @RequestBody Set<Long> ${
-                targetClass.toLowerCase()
-              }Ids) {
+              }(@PathVariable Long ${dataClass.name.toLowerCase()}Id, @RequestBody Set<Long> ${targetClass.toLowerCase()}Ids) {
         Set<${targetClass}> ${targetClass.toLowerCase()}s = ${dataClass.name.toLowerCase()}Service.assign${targetClass}sTo${
                 dataClass.name
               }(${dataClass.name.toLowerCase()}Id, ${targetClass.toLowerCase()}Ids);

@@ -106,7 +106,7 @@ const createInvitacionDiagrama = async (id: string, diagram: Diagram) => {
     const diagrama = await diagramModel.findById(id);
     const userIdParticipante = diagram.participantes[0];
     const userParticipante = await userModel.findById(userIdParticipante);
-    const url = `http://localhost:5173/private/diagrams/${id}`;
+    const url = `http://137.184.205.247:5173/private/diagrams/${id}`;
     const qr = await generateQR({ url });
     const mailOptions = await transport.sendMail({
         from: '"Marco David Toledo 🌀" <marcotoledo@midominio.com>',
